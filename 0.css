@@ -83,8 +83,8 @@ a {
   .send:hover {
     width: max-content;
   }
-  body #chat-box {
-    height: 250px;
+  body #chat {
+    height: 70%;
   }
   .ko,
   .ko:hover {
