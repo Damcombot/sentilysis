@@ -1,28 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="0.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Edu+AU+VIC+WA+NT+Hand:wght@400..700&family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Space+Grotesk:wght@300..700&family=Syncopate:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <title>Stupidly</title>
-  </head>
-  <body>
-    <div id="chat">
-        <h1 style="justify-content: center">Stupidly</h1>
-        <button class="ko" type="button" onclick="window.location.href='https://damcombot.github.io/Web/';">V</button>
-      <div id="chat-box"></div>
-      <div style="display: inline-flex; width: 100%">
-        <input type="text" id="userInput" placeholder="Ask me anything..." />
-        <button onclick="sendMessage()" class="send">Send</button>
-      </div>
-    </div>
-    <script src="jss.js"></script>
-  </body>
+    <title>IMDb Sentiment Chat</title>
+</head>
+<body>
+    <input type="text" id="userInput" placeholder="Enter text to analyze sentiment" />
+    <button onclick="analyzeSentiment()">Analyze</button>
+    <div id="chatBox"></div>
+
+    <script>
+        // Define the query function for the Hugging Face API call
+        async function query(data) {
+            const response = await fetch(
+                "https://api-inference.huggingface.co/models/Leonuraht/IMDBert",
+                {
+                    headers: {
+                        Authorization: "Bearer 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",
+                        "Content-Type": "application/json",
+                    },
+                    method: "POST",
+                    body: JSON.stringify(data),
+                }
+            );
+            const result = await response.json();
+            return result;
+        }
+
+        async function analyzeSentiment() {
+          const userInput = document.getElementById("userInput").value;
+          const chatBox = document.getElementById("chatBox");
+      
+          // Display user message
+          chatBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
+      
+          try {
+              // Send input to the model
+              const response = await query({ inputs: userInput });
+      
+              // Check for response format and parse accordingly
+              if (Array.isArray(response) && response[0] && Array.isArray(response[0])) {
+                  const scores = response[0]; // Extract the inner list
+      
+                  // Find LABEL_1 (positive) and LABEL_0 (negative) scores
+                  const positiveScoreObj = scores.find(item => item.label === "LABEL_1");
+                  const negativeScoreObj = scores.find(item => item.label === "LABEL_0");
+      
+                  if (positiveScoreObj && negativeScoreObj) {
+                      const positiveScore = positiveScoreObj.score;
+                      const negativeScore = negativeScoreObj.score;
+      
+                      // Determine sentiment based on higher score
+                      let sentiment;
+                      let confidence;
+                      if (positiveScore > negativeScore) {
+                          sentiment = "Positive";
+                          confidence = `${(positiveScore * 100).toFixed(2)}%`;
+                      } else {
+                          sentiment = "Negative";
+                          confidence = `${(negativeScore * 100).toFixed(2)}%`;
+                      }
+      
+                      // Construct bot message
+                      const botMessage = `This text has a ${sentiment} sentiment! (Confidence: ${confidence})`;
+      
+                      chatBox.innerHTML += `<div><strong>Bot:</strong> ${botMessage}</div>`;
+                  } else {
+                      chatBox.innerHTML += `<div><strong>Bot:</strong> Error: Unexpected response content</div>`;
+                  }
+              } else {
+                  chatBox.innerHTML += `<div><strong>Bot:</strong> Error: Unexpected response format</div>`;
+              }
+      
+              // Clear input field and scroll to bottom
+              document.getElementById("userInput").value = "";
+              chatBox.scrollTop = chatBox.scrollHeight;
+      
+          } catch (error) {
+              // Handle errors
+              chatBox.innerHTML += `<div><strong>Bot:</strong> Error: ${error.message}</div>`;
+          }
+      }      
+      
+    </script>
+</body>
 </html>
