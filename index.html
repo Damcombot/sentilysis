@@ -3,15 +3,285 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IMDb Sentiment Chat</title>
+    <title>Sentilysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f0f2f5;
+            color: #161616;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(-45deg, #1a73e8, #289cf5, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: relative;
+            animation: gradientBG 15s ease infinite;
+            z-index: 100;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .header-content {
+            position: relative;
+            animation: slideDown 1s ease-out forwards;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            letter-spacing: 1px;
+            display: inline-block;
+            position: relative;
+            font-family:'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+
+        .header h1::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 2px;
+            background: white;
+            transform: translateX(-100%);
+            animation: underline 1.5s ease forwards 0.5s;
+        }
+
+        @keyframes underline {
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards 1s;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 0.9;
+            }
+        }
+
+        .chat-container {
+            flex: 1;
+            max-width: 1000px;
+            margin: 1rem auto;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        #chatBox {
+            flex: 1;
+            min-height: 300px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            margin-top: 0rem;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .message.user {
+            margin-left: auto;
+        }
+
+        .message.bot {
+            margin-right: auto;
+        }
+
+        .message-content {
+            padding: 0.8rem 1.2rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 1rem;
+        }
+
+        .user .message-content {
+            background: linear-gradient(135deg, #1a73e8, #289cf5);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot .message-content {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            color: #333;
+            border-bottom-left-radius: 5px;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 0.8rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 0.8rem 1.2rem;
+            border: 2px solid #e1e4e8;
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #userInput:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 4px rgba(26,115,232,0.1);
+        }
+
+        button {
+            padding: 0 1.5rem;
+            background: linear-gradient(135deg, #1a73e8, #289cf5);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(26,115,232,0.3);
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 0.8rem 1.2rem;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            width: fit-content;
+        }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #1a73e8;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+        }
+
+        #chatBox::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chatBox::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        #chatBox::-webkit-scrollbar-thumb {
+            background: #1a73e8;
+            border-radius: 3px;
+        }
+
+        #chatBox::-webkit-scrollbar-thumb:hover {
+            background: #1557b0;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 95%;
+                margin: 0.5rem auto;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+    </style>
 </head>
 <body>
-    <input type="text" id="userInput" placeholder="Enter text to analyze sentiment" />
-    <button onclick="analyzeSentiment()">Analyze</button>
-    <div id="chatBox"></div>
+    <div class="header">
+        <div class="header-content">
+            <h1>Sentilysis</h1>
+        </div>
+    </div>
+    
+    <div class="chat-container">
+        <div id="chatBox">
+            <div class="message bot">
+                <div class="message-content">
+                    👋 Hello! I'm your sentiment analysis assistant. Share any text with me, and I'll analyze its emotional tone.
+                </div>
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="input-container">
+            <input 
+                type="text" 
+                id="userInput" 
+                placeholder="Type your message here... Press Enter to send" 
+                onkeypress="if(event.key === 'Enter') analyzeSentiment()"
+            />
+            <button onclick="analyzeSentiment()">Send</button>
+        </div>
+    </div>
 
     <script>
-        // Define the query function for the Hugging Face API call
         async function query(data) {
             const response = await fetch(
                 "https://api-inference.huggingface.co/models/Leonuraht/IMDBert",
@@ -28,61 +298,72 @@
             return result;
         }
 
+        function addMessage(content, isUser = false) {
+            const chatBox = document.getElementById("chatBox");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${content}
+                </div>
+            `;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const indicator = document.getElementById("typingIndicator");
+            indicator.style.display = "block";
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById("typingIndicator");
+            indicator.style.display = "none";
+        }
+
         async function analyzeSentiment() {
-          const userInput = document.getElementById("userInput").value;
-          const chatBox = document.getElementById("chatBox");
-      
-          // Display user message
-          chatBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
-      
-          try {
-              // Send input to the model
-              const response = await query({ inputs: userInput });
-      
-              // Check for response format and parse accordingly
-              if (Array.isArray(response) && response[0] && Array.isArray(response[0])) {
-                  const scores = response[0]; // Extract the inner list
-      
-                  // Find LABEL_1 (positive) and LABEL_0 (negative) scores
-                  const positiveScoreObj = scores.find(item => item.label === "LABEL_1");
-                  const negativeScoreObj = scores.find(item => item.label === "LABEL_0");
-      
-                  if (positiveScoreObj && negativeScoreObj) {
-                      const positiveScore = positiveScoreObj.score;
-                      const negativeScore = negativeScoreObj.score;
-      
-                      // Determine sentiment based on higher score
-                      let sentiment;
-                      let confidence;
-                      if (positiveScore > negativeScore) {
-                          sentiment = "Positive";
-                          confidence = `${(positiveScore * 100).toFixed(2)}%`;
-                      } else {
-                          sentiment = "Negative";
-                          confidence = `${(negativeScore * 100).toFixed(2)}%`;
-                      }
-      
-                      // Construct bot message
-                      const botMessage = `This text has a ${sentiment} sentiment! (Confidence: ${confidence})`;
-      
-                      chatBox.innerHTML += `<div><strong>Bot:</strong> ${botMessage}</div>`;
-                  } else {
-                      chatBox.innerHTML += `<div><strong>Bot:</strong> Error: Unexpected response content</div>`;
-                  }
-              } else {
-                  chatBox.innerHTML += `<div><strong>Bot:</strong> Error: Unexpected response format</div>`;
-              }
-      
-              // Clear input field and scroll to bottom
-              document.getElementById("userInput").value = "";
-              chatBox.scrollTop = chatBox.scrollHeight;
-      
-          } catch (error) {
-              // Handle errors
-              chatBox.innerHTML += `<div><strong>Bot:</strong> Error: ${error.message}</div>`;
-          }
-      }      
-      
+            const userInput = document.getElementById("userInput");
+            const text = userInput.value.trim();
+            
+            if (!text) return;
+
+            addMessage(text, true);
+            userInput.value = "";
+            
+            showTypingIndicator();
+
+            try {
+                const response = await query({ inputs: text });
+
+                if (Array.isArray(response) && response[0] && Array.isArray(response[0])) {
+                    const scores = response[0];
+                    const positiveScoreObj = scores.find(item => item.label === "LABEL_1");
+                    const negativeScoreObj = scores.find(item => item.label === "LABEL_0");
+
+                    if (positiveScoreObj && negativeScoreObj) {
+                        const positiveScore = positiveScoreObj.score;
+                        const negativeScore = negativeScoreObj.score;
+
+                        let sentiment = positiveScore > negativeScore ? "positive" : "negative";
+                        let confidence = positiveScore > negativeScore ? 
+                            (positiveScore * 100).toFixed(1) : 
+                            (negativeScore * 100).toFixed(1);
+                        
+                        let emoji = sentiment === "positive" ? "😊" : "😔";
+                        
+                        const botMessage = `I detect a ${sentiment} sentiment in your message! ${confidence}% confidence ${emoji}`;
+                        
+                        hideTypingIndicator();
+                        addMessage(botMessage);
+                    }
+                }
+            } catch (error) {
+                hideTypingIndicator();
+                addMessage("Sorry, I encountered an error while analyzing the sentiment. Please try again.");
+            }
+        }
+
+        document.getElementById("userInput").focus();
     </script>
 </body>
 </html>
